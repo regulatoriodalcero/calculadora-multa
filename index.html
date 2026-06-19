@@ -511,7 +511,6 @@
         </div>
 
         <div class="result-actions">
-          <button class="btn btn-secondary" onclick="window.print()">🖨 Imprimir / Salvar PDF</button>
           <button class="btn btn-ghost" onclick="goTo('tool')">↺ Ajustar dados</button>
           <button class="btn btn-ghost" onclick="restart()">Nova simulação</button>
         </div>
@@ -909,7 +908,7 @@ function enviarEmail(auto){
   est.style.display = "block";
   if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf("COLE_AQUI") === 0){
     est.className = "email-status erro";
-    est.innerHTML = 'O envio por e-mail ainda não foi configurado. Use "Imprimir / Salvar PDF" ou fale com <b>comercial@dalceroconsultoria.com.br</b>.';
+    est.innerHTML = 'O envio por e-mail ainda não foi configurado. Fale com <b>comercial@dalceroconsultoria.com.br</b>.';
     return;
   }
   if(btn) btn.disabled = true;
