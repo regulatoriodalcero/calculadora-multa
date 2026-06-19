@@ -14,7 +14,8 @@ Ferramenta web (HTML único) para simular o enquadramento e o **valor estimado d
 - **Atenuantes** (art. 113), **agravantes** (art. 114) e **reincidência específica** (art. 116, máximo +10% cumulativo).
 - **Advertência** automática nos casos do art. 119.
 - **Memória de cálculo** com a base legal citada.
-- **Envio do resultado por e-mail** para o cliente e cópia interna para a Dal Cero (via Google Apps Script).
+- **Envio do resultado por e-mail** para o cliente (via Google Apps Script).
+- **Planilha-compilado** (Google Sheets) registra toda simulação — aba `Respostas` (ordenável por empresa) e aba `Marketing (opt-in)` (quem aceitou marketing). Cópia interna por e-mail só para `regulatorio@`.
 - Página inicial de **captura de dados com LGPD** (consentimento obrigatório + opt-in de marketing).
 
 ## Estrutura

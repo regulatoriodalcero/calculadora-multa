@@ -16,14 +16,27 @@
  * ============================================================================
  */
 
-// E-mails internos que recebem a cópia de cada simulação (separados por vírgula).
-var COPIA_INTERNA = "comercial@dalceroconsultoria.com.br,regulatorio@dalceroconsultoria.com.br";
+// E-mail interno que recebe cada resposta. O comercial NÃO recebe mais e-mail
+// por resposta — passou a usar a planilha-compilado (abaixo).
+var COPIA_INTERNA = "regulatorio@dalceroconsultoria.com.br";
 var REMETENTE_NOME = "Dal Cero Consultoria";
+
+// Planilha-compilado (todas as respostas). Deixe vazio para CRIAR automaticamente
+// na 1ª execução — o link é enviado por e-mail ao regulatório. Ou cole o ID de uma
+// planilha já existente (o trecho entre /d/ e /edit na URL do Google Sheets).
+var SHEET_ID = "";
+var SHEET_NOME = "Calculadora de Multa — Respostas";
+var CABECALHO = ["Data/Hora","Nome","Empresa","E-mail","Registro MAPA","Natureza",
+  "Enquadramento","Porte","Faixa Mínima","Faixa Máxima","Valor Estimado","Base do Valor",
+  "Atenuantes","Agravantes","Reincidência Específica","Advertência","Consentimento LGPD","Aceita Marketing"];
 
 function doPost(e) {
   try {
     var p = (e && e.parameter) ? e.parameter : {};
     var emailCliente = (p.email || "").trim();
+
+    // 1) Registra a resposta na planilha-compilado (não bloqueia o e-mail se falhar)
+    try { registrarNaPlanilha_(p); } catch (eSheet) {}
 
     if (emailCliente) {
       MailApp.sendEmail({
@@ -197,4 +210,60 @@ function emailInterno_(p) {
     "<h3 style='color:#041F47;font-size:14px;margin:16px 0 6px'>Memória de cálculo</h3>" +
     memoriaHtml_(p.memoria) +
   "</div>";
+}
+
+/* ---------------------- planilha-compilado ---------------------- */
+function registrarNaPlanilha_(p) {
+  var aba = getAba_();
+  aba.appendRow([
+    p.data ? dataFmt_(p.data) : "",
+    p.nome || "", p.empresa || "", p.email || "", p.registro || "",
+    p.natureza || "", p.enquadramento || "", p.porte || "",
+    p.faixa_min || "", p.faixa_max || "", p.valor_estimado || "", p.base_valor || "",
+    p.atenuantes || "", p.agravantes || "", p.reincidencia_especifica || "", p.advertencia || "",
+    p.consentimento || "", p.optin_marketing || ""
+  ]);
+}
+
+function getAba_() {
+  var props = PropertiesService.getScriptProperties();
+  var id = SHEET_ID || props.getProperty("SHEET_ID");
+  var ss;
+  if (id) {
+    ss = SpreadsheetApp.openById(id);
+  } else {
+    ss = SpreadsheetApp.create(SHEET_NOME);
+    props.setProperty("SHEET_ID", ss.getId());
+    try {
+      MailApp.sendEmail({
+        to: COPIA_INTERNA,
+        subject: "Planilha de respostas criada — Calculadora de Multa",
+        htmlBody: "O compilado das simulações foi criado automaticamente:<br><br>" +
+          "<a href='" + ss.getUrl() + "'>" + ss.getUrl() + "</a><br><br>" +
+          "Aba <b>Respostas</b> = todas as simulações (ordene por <i>Empresa</i> para o comparativo do comercial).<br>" +
+          "Aba <b>Marketing (opt-in)</b> = somente quem aceitou comunicações de marketing.",
+        name: REMETENTE_NOME
+      });
+    } catch (e) {}
+  }
+  var aba = ss.getSheetByName("Respostas") || ss.getSheets()[0];
+  if (aba.getName() !== "Respostas") aba.setName("Respostas");
+  if (aba.getLastRow() === 0) {
+    aba.appendRow(CABECALHO);
+    aba.getRange(1, 1, 1, CABECALHO.length).setFontWeight("bold").setBackground("#041F47").setFontColor("#ffffff");
+    aba.setFrozenRows(1);
+    criarAbaMarketing_(ss);
+  }
+  return aba;
+}
+
+// Aba que filtra automaticamente quem aceitou marketing (coluna R = "Aceita Marketing").
+// Best-effort: se a fórmula falhar por locale, basta filtrar a coluna na aba Respostas.
+function criarAbaMarketing_(ss) {
+  try {
+    if (ss.getSheetByName("Marketing (opt-in)")) return;
+    var m = ss.insertSheet("Marketing (opt-in)");
+    m.getRange("A1").setFormula('=QUERY(Respostas!A:R, "select A, B, C, D, E where R = \'sim\' order by C", 1)');
+    m.getRange(1, 1, 1, 5).setNote("Atualiza sozinha: Nome/Empresa/E-mail/Registro/Data de quem aceitou marketing.");
+  } catch (e) {}
 }
